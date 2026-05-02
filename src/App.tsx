@@ -276,23 +276,149 @@ export default function App() {
   const leadsRemaining = target ? target - leads.length : 0;
   const progressPercent = target ? Math.min(100, (leads.length / target) * 100) : 0;
 
-  if (!target) {
+  if (window.location.pathname === '/prompt') {
     return (
-      <div className="min-h-screen bg-wise-dark text-wise-light p-6 flex flex-col items-center justify-center font-sans relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-wise-green rounded-full opacity-10 blur-3xl"></div>
-        <div className="absolute bottom-[-100px] left-[-100px] w-96 h-96 bg-wise-green rounded-full opacity-10 blur-3xl"></div>
+      <div className="min-h-screen bg-wise-dark text-wise-light p-4 md:p-8 font-sans flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="absolute top-[-100px] left-[-100px] w-96 h-96 bg-wise-green rounded-full opacity-10 blur-3xl"></div>
+        <div className="absolute bottom-[-100px] right-[-100px] w-96 h-96 bg-wise-green rounded-full opacity-10 blur-3xl"></div>
+        
+        <div className="w-full max-w-4xl bg-wise-light text-wise-dark p-8 md:p-12 rounded-[2.5rem] shadow-[12px_12px_0px_#9FE870] border-[6px] border-wise-dark relative z-10 flex flex-col">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-16 h-16 bg-wise-green rounded-2xl border-4 border-wise-dark flex items-center justify-center brutalist-shadow">
+              <svg viewBox="0 0 100 100" className="w-10 h-10">
+                <path d="M 70 30 A 28 28 0 1 1 30 30" fill="none" stroke="currentColor" strokeWidth="16" strokeLinecap="round" />
+              </svg>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black leading-none text-wise-dark">Prompt de Design</h1>
+          </div>
+          <p className="text-xl font-bold mb-6 opacity-80 text-wise-dark">Copie este prompt e use em outras ferramentas para replicar o estilo <strong>Lanfed Brutalism</strong>.</p>
+          <textarea
+            readOnly
+            className="w-full h-[50vh] p-6 font-mono text-lg bg-white border-4 border-wise-dark rounded-2xl focus:outline-none focus:ring-4 focus:ring-wise-green brutalist-shadow transition-all resize-none"
+            value={`Crie um design com o estilo visual "Lanfed Brutalism", seguindo estritamente as regras abaixo:
 
-        <div className="w-full max-w-md bg-wise-light text-wise-dark p-8 md:p-12 rounded-[2rem] shadow-[12px_12px_0px_#9FE870] border-[6px] border-wise-dark relative z-10 flex flex-col items-center">
+1. **Tipografia:**
+   - Fonte principal: 'Fredoka', ui-sans-serif, system-ui, sans-serif. Deve ser uma fonte arredondada, pesada ("comic"/"black"). Importada via Google Fonts (wght@400;500;600;700).
+   - Use pesos de fonte altos (font-black, font-bold) para quase tudo, evitando pesos finos.
+
+2. **Cores Principais:**
+   - bg-wise-dark (Verde super escuro / Quase preto): #163300 (Geralmente o fundo primário da página ou cor de bordas pesadas)
+   - bg-wise-green (Verde Neon Claro): #9FE870 (Usado como cor principal de destaque, botões primários, backgrounds chamativos)
+   - bg-wise-light (Branco/Bege esverdeado): #F4F6F0 (Fundo claro para cards, seções secundárias)
+
+3. **Elementos Visuais e Brutalismo:**
+   - **Bordas Grossas:** Praticamente todos os cards, botões grandes, modais e inputs devem ter bordas grossas sólidas (ex: border-4 border-wise-dark ou até border-[6px]).
+   - **Sombras Sólidas (Brutalist Shadows):** As sombras não devem ser esfumaçadas. Devem ser sólidas e destacadas (ex: shadow-[8px_8px_0px_#9FE870] ou shadow-[6px_6px_0px_#163300]).
+   - **Arredondamento Forte (Pills & Blobs):** Elementos não são super quadrados. Use bordas bem arredondadas, como rounded-[2rem], rounded-3xl, e rounded-full.
+
+4. **Componentes e Layouts:**
+   - Inputs e textareas devem ter px-5 py-4 text-xl font-bold bg-white border-4 border-wise-dark rounded-2xl focus:ring-4 focus:ring-wise-green focus:outline-none placeholder:text-gray-400.
+   - Botões devem seguir a mesma lógica de borda grossa e sombra sólida: py-4 text-2xl font-black rounded-3xl border-4 border-wise-dark hover:translate-y-1 transition-all e ao passar o mouse diminuir a sombra com o deslocamento.
+   - Os ícones devem ser da biblioteca 'lucide-react', usar strokeWidth={3} ou 4 para acompanhar o peso da fonte (nada de ícones finos).
+   - Não adote a estética "minimalista" vazia. O layout deve parecer preenchido, vibrante e denso, embora bem espaçado (paddings generosos). Tudo muito bem demarcado pelas bordas.
+
+Mantenha essa identidade em todo componente desenhado.`} 
+          />
+          <div className="flex gap-4 mt-6">
+            <button 
+                onClick={() => window.location.href = '/'}
+                className="px-6 py-4 bg-white text-wise-dark rounded-2xl border-4 border-wise-dark font-black text-xl flex items-center justify-center brutalist-shadow hover:translate-y-1 transition-all flex-1"
+            >
+              Voltar ao App
+            </button>
+            <button 
+                onClick={() => {
+                   const txt = document.querySelector('textarea');
+                   if(txt) { txt.select(); document.execCommand('copy'); alert('Prompt copiado!'); }
+                }}
+                className="px-6 py-4 bg-wise-green text-wise-dark rounded-2xl border-4 border-wise-dark font-black text-xl flex items-center justify-center brutalist-shadow hover:translate-y-1 transition-all flex-1"
+            >
+              Copiar Prompt
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-wise-dark text-wise-light font-sans relative pb-32">
+      {/* Top Header */}
+      <div className="bg-wise-green text-wise-dark border-b-8 border-wise-dark p-4 md:p-6 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white rounded-2xl border-4 border-wise-dark flex items-center justify-center brutalist-shadow text-wise-dark">
+               <svg viewBox="0 0 100 100" className="w-10 h-10">
+                 <path d="M 70 30 A 28 28 0 1 1 30 30" fill="none" stroke="currentColor" strokeWidth="16" strokeLinecap="round" />
+               </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-black leading-none">Lanfed Leads</h1>
+              {target && (
+                <p className="font-bold text-wise-dark/70 text-lg">
+                  {leads.length} / {target} leads capturados
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 w-full md:w-auto">
+            {isTimerActive && (
+              <div className={`px-6 py-3 rounded-2xl border-4 border-wise-dark font-black text-2xl flex items-center gap-3 ${timeExpired ? 'bg-red-500 text-white' : 'bg-white text-wise-dark'}`}>
+                <Clock strokeWidth={3} />
+                {timeExpired ? "00:00:00" : formatTime(remainingMs)}
+              </div>
+            )}
+
+            {target && (
+              <>
+                <button
+                  onClick={exportToCSV}
+                  className="px-6 py-3 bg-white text-wise-dark rounded-2xl border-4 border-wise-dark font-black text-xl flex items-center gap-2 brutalist-shadow hover:translate-y-1 transition-all"
+                >
+                  <Download strokeWidth={3} />
+                  <span className="hidden sm:inline">Exportar</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('historico')}
+                    className="p-3 bg-wise-dark text-white rounded-2xl border-4 border-transparent hover:border-white transition-all font-bold"
+                    aria-label="Comunidade"
+                    title="Fórum Público"
+                >
+                    <MessageCircle strokeWidth={3} />
+                </button>
+                <button
+                    onClick={handleReset}
+                    className="p-3 bg-wise-dark text-white rounded-2xl border-4 border-transparent hover:border-red-500 transition-all font-bold group"
+                    aria-label="Resetar"
+                    title="Resetar contagem"
+                >
+                    <RefreshCcw strokeWidth={3} className="group-hover:text-red-500" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* Progress bar */}
+        {target && (
+          <div className="max-w-6xl mx-auto mt-6 bg-white border-4 border-wise-dark rounded-full h-8 overflow-hidden relative">
+            <div 
+              className="h-full bg-wise-dark transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      {activeTab === 'desafio' && !target && (
+        <div className="max-w-md mx-auto mt-16 bg-wise-light text-wise-dark p-8 md:p-12 rounded-[2rem] shadow-[12px_12px_0px_#9FE870] border-[6px] border-wise-dark relative z-10 flex flex-col items-center">
           <div className="w-24 h-24 bg-wise-green rounded-3xl border-4 border-wise-dark flex items-center justify-center mb-8 brutalist-shadow rotate-3">
             <svg viewBox="0 0 100 100" className="w-16 h-16">
               <path d="M 70 30 A 28 28 0 1 1 30 30" fill="none" stroke="currentColor" strokeWidth="14" strokeLinecap="round" />
             </svg>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-black text-center mb-4 leading-tight">
-            Lanfed<br/>Leads
-          </h1>
           <p className="text-xl font-medium text-center mb-10 opacity-80">
             Defina sua meta e comece a capturar contatos.
           </p>
@@ -319,75 +445,9 @@ export default function App() {
             INICIAR
           </button>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="min-h-screen bg-wise-dark text-wise-light font-sans relative pb-24">
-      {/* Top Header */}
-      <div className="bg-wise-green text-wise-dark border-b-8 border-wise-dark p-4 md:p-6 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white rounded-2xl border-4 border-wise-dark flex items-center justify-center brutalist-shadow text-wise-dark">
-               <svg viewBox="0 0 100 100" className="w-10 h-10">
-                 <path d="M 70 30 A 28 28 0 1 1 30 30" fill="none" stroke="currentColor" strokeWidth="16" strokeLinecap="round" />
-               </svg>
-            </div>
-            <div>
-              <h1 className="text-3xl font-black leading-none">Lanfed Leads</h1>
-              <p className="font-bold text-wise-dark/70 text-lg">
-                {leads.length} / {target} leads capturados
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 w-full md:w-auto">
-            {isTimerActive && (
-              <div className={`px-6 py-3 rounded-2xl border-4 border-wise-dark font-black text-2xl flex items-center gap-3 ${timeExpired ? 'bg-red-500 text-white' : 'bg-white text-wise-dark'}`}>
-                <Clock strokeWidth={3} />
-                {timeExpired ? "00:00:00" : formatTime(remainingMs)}
-              </div>
-            )}
-
-            <button
-              onClick={exportToCSV}
-              className="px-6 py-3 bg-white text-wise-dark rounded-2xl border-4 border-wise-dark font-black text-xl flex items-center gap-2 brutalist-shadow hover:translate-y-1 transition-all"
-            >
-              <Download strokeWidth={3} />
-              <span className="hidden sm:inline">Exportar</span>
-            </button>
-            <button
-                onClick={() => setActiveTab('historico')}
-                className="p-3 bg-wise-dark text-white rounded-2xl border-4 border-transparent hover:border-white transition-all font-bold"
-                aria-label="Comunidade"
-                title="Fórum Público"
-            >
-                <MessageCircle strokeWidth={3} />
-            </button>
-            <button
-                onClick={handleReset}
-                className="p-3 bg-wise-dark text-white rounded-2xl border-4 border-transparent hover:border-red-500 transition-all font-bold group"
-                aria-label="Resetar"
-                title="Resetar contagem"
-            >
-                <RefreshCcw strokeWidth={3} className="group-hover:text-red-500" />
-            </button>
-          </div>
-        </div>
-        
-        {/* Progress bar */}
-        <div className="max-w-6xl mx-auto mt-6 bg-white border-4 border-wise-dark rounded-full h-8 overflow-hidden relative">
-          <div 
-            className="h-full bg-wise-dark transition-all duration-500 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-
-      </div>
-
-      {activeTab === 'desafio' && (
+      {activeTab === 'desafio' && target && (
       <div className="max-w-6xl mx-auto p-4 md:p-8 grid lg:grid-cols-[400px_1fr] gap-8 mt-6">
         {/* Input Form Area */}
         <div className="order-1">
