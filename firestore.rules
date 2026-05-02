@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isVerifiedUser() { return isSignedIn() && request.auth.token.email_verified == true; }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['authorName', 'content', 'authorUid', 'createdAt', 'isPublic']) &&
+             data.keys().size() == 5 &&
+             data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 50 &&
+             data.content is string && data.content.size() > 0 && data.content.size() <= 1000 &&
+             data.authorUid is string && data.authorUid.size() <= 128 &&
+             data.createdAt == request.time &&
+             data.authorUid == request.auth.uid &&
+             data.isPublic == true;
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn() && resource.data.isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isVerifiedUser() && isValidId(postId) && isValidPost(incoming());
+      allow update: if false; // immutable posts
+      allow delete: if false; // cannot delete
+    }
+  }
+}

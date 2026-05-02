@@ -1,0 +1,23 @@
+{
+  "entities": {
+    "Post": {
+      "title": "Post",
+      "description": "A message in the public forum",
+      "type": "object",
+      "properties": {
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "isPublic": { "type": "boolean" }
+      },
+      "required": ["authorName", "content", "authorUid", "createdAt", "isPublic"]
+    }
+  },
+  "firestore": {
+    "posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Public forum posts"
+    }
+  }
+}

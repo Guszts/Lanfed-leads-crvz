@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Plus, Clock, MapPin, Phone, User, CheckCircle2, Play, RefreshCcw, MessageCircle, X, Send } from 'lucide-react';
+import { Download, Plus, Clock, MapPin, Phone, User, CheckCircle2, Play, RefreshCcw, MessageCircle, X, Send, LogIn, LogOut } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { auth, db } from './firebase';
 
 interface Lead {
   id: string;
@@ -13,6 +16,53 @@ interface Post {
   author: string;
   content: string;
   timestamp: number;
+}
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
 }
 
 export default function App() {
@@ -30,10 +80,44 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tempPostContent, setTempPostContent] = useState('');
-  const [chatAuthorName, setChatAuthorName] = useState('');
+  
+  // Auth state
+  const [user, setUser] = useState<FirebaseUser | null>(null);
 
   // 5 hours in milliseconds
   const FIVE_HOURS = 5 * 60 * 60 * 1000;
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    let unsubscribeSnapshot: () => void;
+    if (isChatOpen && user) {
+        const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+        unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+            const fetchedPosts: Post[] = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                fetchedPosts.push({
+                    id: doc.id,
+                    author: data.authorName,
+                    content: data.content,
+                    timestamp: data.createdAt ? data.createdAt.toMillis() : Date.now(),
+                });
+            });
+            setPosts(fetchedPosts);
+        }, (error) => {
+            handleFirestoreError(error, OperationType.LIST, 'posts');
+        });
+    }
+    return () => {
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
+  }, [isChatOpen, user]);
 
   useEffect(() => {
     let interval: number;
@@ -71,19 +155,35 @@ export default function App() {
     setNewPhone('');
   };
 
-  const handleAddPost = (e: React.FormEvent) => {
+  const handleAddPost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tempPostContent.trim() || !chatAuthorName.trim()) return;
+    if (!tempPostContent.trim() || !user) return;
 
-    const newPost: Post = {
-      id: crypto.randomUUID(),
-      author: chatAuthorName.trim(),
-      content: tempPostContent.trim(),
-      timestamp: Date.now(),
-    };
+    try {
+        await addDoc(collection(db, 'posts'), {
+            authorName: user.displayName || 'Anônimo',
+            content: tempPostContent.trim(),
+            authorUid: user.uid,
+            isPublic: true,
+            createdAt: serverTimestamp()
+        });
+        setTempPostContent('');
+    } catch (error) {
+        handleFirestoreError(error, OperationType.CREATE, 'posts');
+    }
+  };
 
-    setPosts([newPost, ...posts]);
-    setTempPostContent('');
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
   };
 
   const exportToCSV = () => {
@@ -394,7 +494,13 @@ export default function App() {
 
             {/* Posts List */}
             <div className="flex-1 overflow-y-auto p-6 bg-wise-light flex flex-col gap-4">
-              {posts.length === 0 ? (
+              {!user ? (
+                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-70">
+                    <LogIn size={64} className="mb-4 text-wise-green" />
+                    <h3 className="text-2xl font-black mb-2">Faça login para ver o Fórum</h3>
+                    <p className="text-lg font-bold">Entre na sua conta Google para participar</p>
+                 </div>
+              ) : posts.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
                   <MessageCircle size={64} className="mb-4" />
                   <h3 className="text-2xl font-black">Nenhuma mensagem ainda</h3>
@@ -418,32 +524,43 @@ export default function App() {
             </div>
 
             {/* Compose Area */}
-            <form onSubmit={handleAddPost} className="p-6 bg-white border-t-6 border-wise-dark shrink-0 flex flex-col gap-4">
-              <input
-                type="text"
-                placeholder="Seu nome..."
-                value={chatAuthorName}
-                onChange={(e) => setChatAuthorName(e.target.value)}
-                className="w-full px-5 py-3 text-lg font-bold rounded-2xl border-4 border-wise-dark focus:outline-none focus:ring-4 focus:ring-wise-green transition-all"
-                maxLength={30}
-              />
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  placeholder="Escreva uma mensagem..."
-                  value={tempPostContent}
-                  onChange={(e) => setTempPostContent(e.target.value)}
-                  className="flex-1 px-5 py-4 text-xl font-bold rounded-2xl border-4 border-wise-dark focus:outline-none focus:ring-4 focus:ring-wise-green transition-all"
-                />
+            {user ? (
+              <form onSubmit={handleAddPost} className="p-6 bg-white border-t-6 border-wise-dark shrink-0 flex flex-col gap-4">
+                <div className="flex justify-between items-center bg-wise-light px-4 py-2 rounded-xl text-sm font-bold border-2 border-wise-dark">
+                  <span>Logado como: {user.displayName || user.email}</span>
+                  <button type="button" onClick={handleLogout} className="text-red-500 hover:text-red-700 flex items-center gap-1">
+                    <LogOut size={16} /> Sair
+                  </button>
+                </div>
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    placeholder="Escreva uma mensagem..."
+                    value={tempPostContent}
+                    onChange={(e) => setTempPostContent(e.target.value)}
+                    className="flex-1 px-5 py-4 text-xl font-bold rounded-2xl border-4 border-wise-dark focus:outline-none focus:ring-4 focus:ring-wise-green transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!tempPostContent.trim()}
+                    className="bg-wise-green px-6 rounded-2xl border-4 border-wise-dark brutalist-shadow flex items-center justify-center hover:translate-y-1 hover:shadow-[2px_2px_0px_#163300] transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+                  >
+                    <Send size={28} strokeWidth={3} />
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-6 bg-white border-t-6 border-wise-dark shrink-0 flex flex-col items-center justify-center">
                 <button
-                  type="submit"
-                  disabled={!tempPostContent.trim() || !chatAuthorName.trim()}
-                  className="bg-wise-green px-6 rounded-2xl border-4 border-wise-dark brutalist-shadow flex items-center justify-center hover:translate-y-1 hover:shadow-[2px_2px_0px_#163300] transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+                  type="button"
+                  onClick={handleLogin}
+                  className="bg-wise-green px-8 py-4 text-xl font-black rounded-2xl border-4 border-wise-dark brutalist-shadow flex items-center justify-center hover:translate-y-1 hover:shadow-[2px_2px_0px_#163300] transition-all gap-2"
                 >
-                  <Send size={28} strokeWidth={3} />
+                  <LogIn size={24} strokeWidth={3} />
+                  Entrar com Google
                 </button>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}
