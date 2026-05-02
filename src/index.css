@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-wise-dark: #163300;
+  --color-wise-green: #9FE870;
+  --color-wise-light: #F4F6F0;
+  --font-sans: "Fredoka", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-wise-dark);
+  color: var(--color-wise-light);
+  font-family: var(--font-sans);
+}
+
+.brutalist-shadow {
+  box-shadow: 4px 4px 0px #163300;
+}
+.brutalist-shadow-light {
+  box-shadow: 6px 6px 0px #9FE870;
+}
+

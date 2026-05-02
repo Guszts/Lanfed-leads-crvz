@@ -1,0 +1,17 @@
+{
+  "name": "Lanfed Leads",
+  "short_name": "Lanfed Leads",
+  "description": "Ferramenta para prospectar leads com meta de tempo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#163300",
+  "theme_color": "#9FE870",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
