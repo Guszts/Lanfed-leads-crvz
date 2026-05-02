@@ -76,8 +76,8 @@ export default function App() {
   const [newMaps, setNewMaps] = useState('');
   const [newPhone, setNewPhone] = useState('');
 
-  // Chat Modal State
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'desafio' | 'planilha' | 'historico'>('desafio');
+  const [uploading, setUploading] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tempPostContent, setTempPostContent] = useState('');
   
@@ -96,7 +96,7 @@ export default function App() {
 
   useEffect(() => {
     let unsubscribeSnapshot: () => void;
-    if (isChatOpen && user) {
+    if (activeTab === 'historico' && user) {
         const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
         unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
             const fetchedPosts: Post[] = [];
@@ -117,7 +117,7 @@ export default function App() {
     return () => {
         if (unsubscribeSnapshot) unsubscribeSnapshot();
     };
-  }, [isChatOpen, user]);
+  }, [activeTab, user]);
 
   useEffect(() => {
     let interval: number;
@@ -184,6 +184,44 @@ export default function App() {
 
   const handleLogout = async () => {
     await signOut(auth);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/process-file", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao processar arquivo");
+      }
+
+      if (data.leads && Array.isArray(data.leads)) {
+        const newLeads = data.leads.map((l: any) => ({
+          id: crypto.randomUUID(),
+          name: l.name || "Sem Nome",
+          mapsLink: l.mapsLink || "",
+          phone: l.phone || "",
+        }));
+        setLeads((prev) => [...newLeads, ...prev]);
+        alert(`${newLeads.length} leads importados e classificados!`);
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUploading(false);
+      // Reset input
+      e.target.value = "";
+    }
   };
 
   const exportToCSV = () => {
@@ -320,7 +358,7 @@ export default function App() {
               <span className="hidden sm:inline">Exportar</span>
             </button>
             <button
-                onClick={() => setIsChatOpen(true)}
+                onClick={() => setActiveTab('historico')}
                 className="p-3 bg-wise-dark text-white rounded-2xl border-4 border-transparent hover:border-white transition-all font-bold"
                 aria-label="Comunidade"
                 title="Fórum Público"
@@ -345,8 +383,11 @@ export default function App() {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+
       </div>
 
+      {activeTab === 'desafio' && (
       <div className="max-w-6xl mx-auto p-4 md:p-8 grid lg:grid-cols-[400px_1fr] gap-8 mt-6">
         {/* Input Form Area */}
         <div className="order-1">
@@ -464,32 +505,60 @@ export default function App() {
           )}
         </div>
       </div>
+      )}
 
-      {/* Chat / Community Modal */}
-      {isChatOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-wise-dark/80 backdrop-blur-sm"
-            onClick={() => setIsChatOpen(false)}
-          />
-          <div className="relative w-full max-w-2xl bg-white text-wise-dark h-[80vh] flex flex-col rounded-[2.5rem] border-[6px] border-wise-dark shadow-[12px_12px_0px_#9FE870] overflow-hidden">
-            {/* Modal Header */}
-            <div className="bg-wise-green p-6 border-b-6 border-wise-dark flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="bg-white p-3 rounded-2xl border-4 border-wise-dark brutalist-shadow">
-                  <MessageCircle size={32} strokeWidth={3} />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-black leading-none">Fórum Público</h2>
-                  <p className="font-bold text-wise-dark/70">Converse com outros prospectores</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsChatOpen(false)}
-                className="bg-white p-2 rounded-xl border-4 border-wise-dark hover:bg-red-500 hover:text-white transition-colors brutalist-shadow"
+      {/* Tab: Planilha */}
+      {activeTab === 'planilha' && (
+        <div className="max-w-4xl mx-auto p-4 md:p-8 mt-6">
+          <div className="bg-wise-light text-wise-dark p-8 md:p-12 rounded-[2.5rem] border-[6px] border-wise-dark shadow-[12px_12px_0px_#9FE870] flex flex-col items-center gap-6">
+            <h2 className="text-4xl font-black text-center mb-2">Importar com Groq IA</h2>
+            <p className="text-xl font-medium text-center opacity-80 mb-6">
+               A inteligência artificial Groq vai extrair Nome, Google Maps e Telefone da sua planilha (CSV, JSON ou texto bruto).
+            </p>
+
+            <div className="w-full relative">
+              <input 
+                type="file" 
+                id="file-upload" 
+                className="hidden" 
+                onChange={handleFileUpload} 
+                disabled={uploading}
+                accept=".csv,.json,.txt"
+              />
+              <label 
+                htmlFor="file-upload" 
+                className={`w-full flex flex-col items-center justify-center p-12 border-4 border-dashed rounded-[2rem] transition-all cursor-pointer ${uploading ? 'bg-gray-100 border-gray-400' : 'bg-white border-wise-green hover:bg-wise-green/10'}`}
               >
-                <X size={28} strokeWidth={4} />
-              </button>
+                <Download size={64} className={`mb-4 ${uploading ? 'animate-bounce text-gray-500' : 'text-wise-green'}`} strokeWidth={3} />
+                <span className="text-2xl font-black text-wise-dark">
+                  {uploading ? 'Processando com IA...' : 'Clique para enviar arquivo'}
+                </span>
+                {!uploading && <span className="text-lg font-bold text-gray-500 mt-2">CSV, JSON ou TXT (Máx: 30KB de texto)</span>}
+              </label>
+            </div>
+            
+            {uploading && (
+               <p className="font-bold text-wise-dark mt-4 animate-pulse text-lg">
+                  Lendo e extraindo leads com Groq, aguarde um instante...
+               </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Histórico (Fórum) */}
+      {activeTab === 'historico' && (
+        <div className="max-w-4xl mx-auto p-4 md:p-8 mt-6 h-[75vh] flex flex-col">
+          <div className="flex-1 bg-white text-wise-dark flex flex-col rounded-[2.5rem] border-[6px] border-wise-dark shadow-[12px_12px_0px_#9FE870] overflow-hidden">
+            {/* Forum Header */}
+            <div className="bg-wise-green p-6 border-b-6 border-wise-dark flex items-center gap-4 shrink-0">
+              <div className="bg-white p-3 rounded-2xl border-4 border-wise-dark brutalist-shadow">
+                <MessageCircle size={32} strokeWidth={3} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black leading-none">Fórum Público</h2>
+                <p className="font-bold text-wise-dark/70 text-lg">Converse com outros prospectores</p>
+              </div>
             </div>
 
             {/* Posts List */}
@@ -564,6 +633,30 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navbar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-wise-green border-t-8 border-wise-dark p-4 pb-6 z-[100] overflow-x-auto">
+        <div className="max-w-6xl mx-auto flex justify-center gap-4">
+          <button 
+            onClick={() => setActiveTab('desafio')}
+            className={`px-6 py-3 rounded-2xl border-4 border-wise-dark font-black text-xl brutalist-shadow transition-all whitespace-nowrap flex-1 md:flex-none flex items-center justify-center ${activeTab === 'desafio' ? 'bg-wise-dark text-wise-green translate-y-1 shadow-[2px_2px_0px_transparent]' : 'bg-white text-wise-dark hover:bg-gray-100'}`}
+          >
+            Desafio
+          </button>
+          <button 
+            onClick={() => setActiveTab('planilha')}
+            className={`px-6 py-3 rounded-2xl border-4 border-wise-dark font-black text-xl brutalist-shadow transition-all whitespace-nowrap flex-1 md:flex-none flex items-center justify-center ${activeTab === 'planilha' ? 'bg-wise-dark text-wise-green translate-y-1 shadow-[2px_2px_0px_transparent]' : 'bg-white text-wise-dark hover:bg-gray-100'}`}
+          >
+            Planilha (IA)
+          </button>
+          <button 
+            onClick={() => setActiveTab('historico')}
+            className={`px-6 py-3 rounded-2xl border-4 border-wise-dark font-black text-xl brutalist-shadow transition-all whitespace-nowrap flex-1 md:flex-none flex items-center justify-center ${activeTab === 'historico' ? 'bg-wise-dark text-wise-green translate-y-1 shadow-[2px_2px_0px_transparent]' : 'bg-white text-wise-dark hover:bg-gray-100'}`}
+          >
+            Histórico
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
