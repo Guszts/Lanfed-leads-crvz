@@ -593,7 +593,7 @@ Mantenha essa identidade em todo componente desenhado.`}
                 <span className="text-2xl font-black text-wise-dark">
                   {uploading ? 'Processando com IA...' : 'Clique para enviar arquivo'}
                 </span>
-                {!uploading && <span className="text-lg font-bold text-gray-500 mt-2">CSV, JSON ou TXT (Máx: 30KB de texto)</span>}
+                {!uploading && <span className="text-lg font-bold text-gray-500 mt-2">CSV, JSON ou TXT (Máx: 300KB de texto)</span>}
               </label>
             </div>
             
